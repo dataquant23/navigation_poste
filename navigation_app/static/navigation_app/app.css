@@ -335,11 +335,18 @@ body {
   }
 
   /* 3 boutons alignés */
-  .actions {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
+ .actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.actions .btn {
+  min-width: 0;           
+  padding: 0 6px;         
+  font-size: 11px;        
+  height: 40px;
+}
 
   .btn {
     width: 100%;
@@ -472,5 +479,48 @@ body {
 
   .info-panel {
     max-height: 135px;
+  }
+}
+
+
+/* MOBILE ONLY */
+@media (max-width: 768px) {
+
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    align-items: end;
+  }
+
+  /* champ recherche prend toute la largeur */
+  .toolbar .field.grow {
+    grid-column: span 3;
+  }
+
+  /* bouton position */
+  .toolbar .field.compact {
+    grid-column: span 1;
+  }
+
+  /* bloc des 2 boutons */
+  .toolbar .actions {
+    grid-column: span 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  /* uniformiser les boutons */
+  .toolbar .btn {
+    width: 100%;
+    height: 40px;
+    font-size: 11px;
+    padding: 0 6px;
+  }
+
+  /* réduire le label "Départ" */
+  .toolbar .field.compact label {
+    font-size: 10px;
   }
 }
