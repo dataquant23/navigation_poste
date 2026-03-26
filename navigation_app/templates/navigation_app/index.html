@@ -1,0 +1,71 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Navigation vers poste</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="{% static 'navigation_app/app.css' %}" />
+</head>
+<body>
+  <div class="shell">
+
+    {% if load_error %}
+    <section class="alert card">
+      <strong>Erreur de chargement :</strong> {{ load_error }}
+    </section>
+    {% endif %}
+
+    <section class="toolbar card">
+      <div class="field grow">
+        <label for="searchInput">Rechercher un poste</label>
+        <input id="searchInput" type="text" placeholder="Ex: 151, B.C.E.A.O, ANADER..." autocomplete="off" />
+        <div id="searchResults" class="search-results"></div>
+      </div>
+
+      <div class="field compact">
+        <label>Départ</label>
+        <button id="locateBtn" class="btn btn-secondary" type="button">Ma position</button>
+      </div>
+
+      <div class="actions">
+        <button id="routeBtn" class="btn btn-primary" type="button" disabled>Tracer l’itinéraire</button>
+        <button id="startBtn" class="btn btn-dark" type="button" disabled>Démarrer dans Maps</button>
+      </div>
+    </section>
+
+    <section class="content">
+      <aside class="sidebar card mobile-bottom-sheet">
+        <div class="section-head">
+          <h2>Poste sélectionné</h2>
+          <span id="resultCount" class="pill">0</span>
+        </div>
+
+        <div id="infoPanel" class="info-panel">
+          <div class="muted">Recherche puis sélectionne un poste pour afficher ses informations.</div>
+        </div>
+      </aside>
+
+      <main class="map-card card">
+        <div class="section-head">
+          <h2>Carte & guidage</h2>
+          <span id="statusText" class="muted">Prête</span>
+        </div>
+        <div id="map"></div>
+      </main>
+    </section>
+  </div>
+
+  <div style="display:none;">{% csrf_token %}</div>
+
+  <script>
+    window.POSTE_NAV_APP = {
+      searchUrl: "{% url 'navigation_app:api_search_postes' %}",
+      detailUrl: "{% url 'navigation_app:api_poste_detail' %}"
+    };
+  </script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="{% static 'navigation_app/app.js' %}"></script>
+</body>
+</html>
