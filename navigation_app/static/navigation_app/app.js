@@ -41,6 +41,11 @@
     return Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
   }
 
+  function formatCoord(value) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num.toFixed(6) : "-";
+  }
+
   function setActionState() {
     const ready = Boolean(state.selectedPoste) && hasValidLatLon(state.selectedPoste);
     routeBtn.disabled = !ready;
@@ -59,18 +64,22 @@
 
     if (state.userMarker) {
       state.userMarker.setLatLng([lat, lon]);
-      return;
+    } else {
+      state.userMarker = L.circleMarker([lat, lon], {
+        radius: 8,
+        color: "#ffffff",
+        weight: 3,
+        fillColor: "#0f766e",
+        fillOpacity: 1,
+      }).addTo(map);
+
+      state.userMarker.bindPopup("<strong>Votre position</strong>");
     }
 
-    state.userMarker = L.circleMarker([lat, lon], {
-      radius: 8,
-      color: "#ffffff",
-      weight: 3,
-      fillColor: "#0f766e",
-      fillOpacity: 1,
-    }).addTo(map);
-
-    state.userMarker.bindPopup("<strong>Votre position</strong>");
+    // Met à jour le panneau si un poste est déjà sélectionné
+    if (state.selectedPoste) {
+      renderInfoPanel(state.selectedPoste);
+    }
   }
 
   function setPosteMarker(poste) {
@@ -109,15 +118,19 @@
       return;
     }
 
+    const userCoords = state.userLocation
+      ? `${formatCoord(state.userLocation.lat)} / ${formatCoord(state.userLocation.lon)}`
+      : "Position non disponible";
+
     infoPanel.innerHTML = `
       <div class="info-grid">
-        <div class="info-item"><b>Nom poste</b>${escapeHtml(poste.nom_poste || "-")}</div>
-        <div class="info-item"><b>Libellé</b>${escapeHtml(poste.libelle || "-")}</div>
-        <div class="info-item"><b>Commune</b>${escapeHtml(poste.commune || "-")}</div>
-        <div class="info-item"><b>Quartier</b>${escapeHtml(poste.quartier || "-")}</div>
-        <div class="info-item"><b>Départ</b>${escapeHtml(poste.depart || "-")}</div>
-        <div class="info-item"><b>Coordonnées GPS décimales</b>${escapeHtml(poste.lat || "-")} / ${escapeHtml(poste.lon || "-")}</div>
-       
+        <div class="info-item"><b>Nom poste</b> ${escapeHtml(poste.nom_poste || "-")}</div>
+        <div class="info-item"><b>Libellé</b> ${escapeHtml(poste.libelle || "-")}</div>
+        <div class="info-item"><b>Commune</b> ${escapeHtml(poste.commune || "-")}</div>
+        <div class="info-item"><b>Quartier</b> ${escapeHtml(poste.quartier || "-")}</div>
+        <div class="info-item"><b>Départ</b> ${escapeHtml(poste.depart || "-")}</div>
+        <div class="info-item"><b>Coordonnées GPS décimales</b> ${formatCoord(poste.lat)} / ${formatCoord(poste.lon)}</div>
+        <div class="info-item"><b>Ma position</b> ${userCoords}</div>
       </div>
     `;
   }
@@ -270,88 +283,85 @@
     }
   }
 
-async function drawRoute() {
-  if (!state.selectedPoste) {
-    alert("Choisis d'abord un poste.");
-    return;
-  }
-
-  if (!hasValidLatLon(state.selectedPoste)) {
-    alert("Coordonnées GPS du poste invalides.");
-    return;
-  }
-
-  try {
-    if (!state.userLocation) {
-      await locateUser();
-    }
-
-    if (!state.userLocation) {
-      alert("Position actuelle indisponible.");
+  async function drawRoute() {
+    if (!state.selectedPoste) {
+      alert("Choisis d'abord un poste.");
       return;
     }
 
-    setStatus("Calcul de l'itinéraire...");
-    clearRoute();
-
-    const start = {
-      lat: Number(state.userLocation.lat),
-      lon: Number(state.userLocation.lon),
-    };
-
-    const dest = {
-      lat: Number(state.selectedPoste.lat),
-      lon: Number(state.selectedPoste.lon),
-    };
-
-    console.log("USER LOCATION =", start);
-    console.log("POSTE LOCATION =", dest);
-
-    const url = `https://router.project-osrm.org/route/v1/driving/${start.lon},${start.lat};${dest.lon},${dest.lat}?overview=full&geometries=geojson`;
-
-    const res = await fetch(url);
-    const data = await res.json();
-
-    if (!data.routes || !data.routes.length) {
-      throw new Error("Itinéraire indisponible");
+    if (!hasValidLatLon(state.selectedPoste)) {
+      alert("Coordonnées GPS du poste invalides.");
+      return;
     }
 
-    const route = data.routes[0];
-    const coords = route.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
+    try {
+      if (!state.userLocation) {
+        await locateUser();
+      }
 
-    state.routeLine = L.polyline(coords, {
-      color: "#f97316",
-      weight: 5,
-      opacity: 0.92,
-    }).addTo(map);
+      if (!state.userLocation) {
+        alert("Position actuelle indisponible.");
+        return;
+      }
 
-    const distanceKm = (route.distance / 1000).toFixed(1);
-    const durationMin = Math.round(route.duration / 60);
+      setStatus("Calcul de l'itinéraire...");
+      clearRoute();
 
-    state.routeLine.bindPopup(`
-      <div style="min-width:220px">
-        <div><strong>Itinéraire calculé</strong></div>
-        <div><b>Distance</b> : ${distanceKm} km</div>
-        <div><b>Durée estimée</b> : ${durationMin} min</div>
-      </div>
-    `);
+      const start = {
+        lat: Number(state.userLocation.lat),
+        lon: Number(state.userLocation.lon),
+      };
 
-    const bounds = L.latLngBounds([
-      [start.lat, start.lon],
-      [dest.lat, dest.lon],
-    ]);
+      const dest = {
+        lat: Number(state.selectedPoste.lat),
+        lon: Number(state.selectedPoste.lon),
+      };
 
-    map.fitBounds(bounds.extend(state.routeLine.getBounds()), {
-      padding: [30, 30],
-    });
+      const url = `https://router.project-osrm.org/route/v1/driving/${start.lon},${start.lat};${dest.lon},${dest.lat}?overview=full&geometries=geojson`;
 
-    setStatus(`Itinéraire prêt • ${distanceKm} km • ${durationMin} min`);
-  } catch (err) {
-    console.error(err);
-    setStatus("Impossible de calculer l'itinéraire");
-    alert("Impossible de calculer l'itinéraire.");
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (!data.routes || !data.routes.length) {
+        throw new Error("Itinéraire indisponible");
+      }
+
+      const route = data.routes[0];
+      const coords = route.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
+
+      state.routeLine = L.polyline(coords, {
+        color: "#f97316",
+        weight: 5,
+        opacity: 0.92,
+      }).addTo(map);
+
+      const distanceKm = (route.distance / 1000).toFixed(1);
+      const durationMin = Math.round(route.duration / 60);
+
+      state.routeLine.bindPopup(`
+        <div style="min-width:220px">
+          <div><strong>Itinéraire calculé</strong></div>
+          <div><b>Distance</b> : ${distanceKm} km</div>
+          <div><b>Durée estimée</b> : ${durationMin} min</div>
+        </div>
+      `);
+
+      const bounds = L.latLngBounds([
+        [start.lat, start.lon],
+        [dest.lat, dest.lon],
+      ]);
+
+      map.fitBounds(bounds.extend(state.routeLine.getBounds()), {
+        padding: [30, 30],
+      });
+
+      setStatus(`Itinéraire prêt • ${distanceKm} km • ${durationMin} min`);
+    } catch (err) {
+      console.error(err);
+      setStatus("Impossible de calculer l'itinéraire");
+      alert("Impossible de calculer l'itinéraire.");
+    }
   }
-}
 
   function openInMaps() {
     if (!state.selectedPoste) {
