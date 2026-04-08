@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Navigation vers poste</title>
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="{% static 'navigation_app/app.css' %}" />
 </head>
@@ -58,15 +59,28 @@
   </div>
 
   <div style="display:none;">{% csrf_token %}</div>
- <footer class="app-footer">
-  POWERED BY DCPIQ / TEAM SDRO
-</footer>
+
+  <footer class="app-footer">
+    POWERED BY DCPIQ / TEAM SDRO
+  </footer>
+
+  <!-- Popup choix app iPhone -->
+  <div id="mapChoiceModal" class="map-modal hidden">
+    <div class="map-modal-content">
+      <h3>Choisir une application</h3>
+      <button id="btnGoogleMaps" class="btn btn-primary" type="button">Google Maps</button>
+      <button id="btnAppleMaps" class="btn btn-secondary" type="button">Plans (iPhone)</button>
+      <button id="btnCancelMaps" class="btn" type="button">Annuler</button>
+    </div>
+  </div>
+
   <script>
     window.POSTE_NAV_APP = {
       searchUrl: "{% url 'navigation_app:api_search_postes' %}",
       detailUrl: "{% url 'navigation_app:api_poste_detail' %}"
     };
   </script>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="{% static 'navigation_app/app.js' %}"></script>
 </body>

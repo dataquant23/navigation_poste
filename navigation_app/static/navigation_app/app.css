@@ -594,3 +594,35 @@ body {
 
   color: var(--muted);       
 }
+
+.map-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.map-modal.hidden {
+  display: none;
+}
+
+.map-modal-content {
+  width: min(90vw, 320px);
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  text-align: center;
+}
+
+.map-modal-content h3 {
+  margin: 0 0 14px;
+}
+
+.map-modal-content .btn {
+  width: 100%;
+  margin-top: 10px;
+}

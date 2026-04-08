@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+import re
+import unicodedata
 
 import pandas as pd
 from pyproj import Transformer
@@ -124,9 +126,21 @@ def load_postes() -> list[dict]:
     return records
 
 
+def _normalize_search_text(value) -> str:
+    if value is None:
+        return ""
+    text = str(value).strip().lower()
+
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(c for c in text if not unicodedata.combining(c))
+    text = re.sub(r"[\s\-_]+", "", text)
+
+    return text
+
+
 def search_postes(query: str, limit: int = 20) -> list[dict]:
     postes = load_postes()
-    q = (query or "").strip().lower()
+    q = _normalize_search_text(query)
 
     if not q:
         return postes[:limit]
@@ -139,9 +153,12 @@ def search_postes(query: str, limit: int = 20) -> list[dict]:
             item.get("code", ""),
             item.get("quartier", ""),
             item.get("commune", ""),
-        ]).lower()
-        if q in hay:
+        ])
+        hay_normalized = _normalize_search_text(hay)
+
+        if q in hay_normalized:
             results.append(item)
+
     return results[:limit]
 
 

@@ -363,70 +363,84 @@
     }
   }
 
-  function openInMaps() {
-    if (!state.selectedPoste) {
-      alert("Choisis d'abord un poste.");
-      return;
-    }
-
-    if (!hasValidLatLon(state.selectedPoste)) {
-      alert("Coordonnées GPS du poste invalides. Vérifie le CRS source dans services.py.");
-      return;
-    }
-
-    const dest = state.selectedPoste;
-    const ua = navigator.userAgent || "";
-
-    const isAndroid = /Android/i.test(ua);
-    const isIOS = /iPad|iPhone|iPod/i.test(ua);
-
-    let appUrl = "";
-    let fallbackUrl = "";
-
-    if (isAndroid) {
-      appUrl = `google.navigation:q=${dest.lat},${dest.lon}`;
-      fallbackUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lon}&travelmode=driving`;
-
-      if (state.userLocation) {
-        fallbackUrl = `https://www.google.com/maps/dir/?api=1&origin=${state.userLocation.lat},${state.userLocation.lon}&destination=${dest.lat},${dest.lon}&travelmode=driving`;
-      }
-
-      window.location.href = appUrl;
-
-      setTimeout(() => {
-        window.location.href = fallbackUrl;
-      }, 1200);
-
-      return;
-    }
-
-    if (isIOS) {
-      appUrl = `maps://?daddr=${dest.lat},${dest.lon}&dirflg=d`;
-      fallbackUrl = `https://maps.apple.com/?daddr=${dest.lat},${dest.lon}&dirflg=d`;
-
-      if (state.userLocation) {
-        appUrl = `maps://?saddr=${state.userLocation.lat},${state.userLocation.lon}&daddr=${dest.lat},${dest.lon}&dirflg=d`;
-        fallbackUrl = `https://maps.apple.com/?saddr=${state.userLocation.lat},${state.userLocation.lon}&daddr=${dest.lat},${dest.lon}&dirflg=d`;
-      }
-
-      window.location.href = appUrl;
-
-      setTimeout(() => {
-        window.location.href = fallbackUrl;
-      }, 1200);
-
-      return;
-    }
-
-    fallbackUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lon}&travelmode=driving`;
-
-    if (state.userLocation) {
-      fallbackUrl = `https://www.google.com/maps/dir/?api=1&origin=${state.userLocation.lat},${state.userLocation.lon}&destination=${dest.lat},${dest.lon}&travelmode=driving`;
-    }
-
-    window.open(fallbackUrl, "_blank");
+function openInMaps() {
+  if (!state.selectedPoste) {
+    alert("Choisis d'abord un poste.");
+    return;
   }
 
+  if (!hasValidLatLon(state.selectedPoste)) {
+    alert("Coordonnées GPS invalides.");
+    return;
+  }
+
+  const dest = state.selectedPoste;
+  const ua = navigator.userAgent || "";
+
+  const isAndroid = /Android/i.test(ua);
+  const isIOS = /iPad|iPhone|iPod/i.test(ua);
+
+  // =========================
+  // ANDROID → direct
+  // =========================
+  if (isAndroid) {
+    let url = `google.navigation:q=${dest.lat},${dest.lon}`;
+
+    window.location.href = url;
+    return;
+  }
+
+  // =========================
+  // iPHONE → afficher choix
+  // =========================
+  if (isIOS) {
+    const modal = document.getElementById("mapChoiceModal");
+    modal.classList.remove("hidden");
+
+    const googleBtn = document.getElementById("btnGoogleMaps");
+    const appleBtn = document.getElementById("btnAppleMaps");
+    const cancelBtn = document.getElementById("btnCancel");
+
+    googleBtn.onclick = () => {
+      let url = `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lon}&travelmode=driving`;
+
+      if (state.userLocation) {
+        url = `https://www.google.com/maps/dir/?api=1&origin=${state.userLocation.lat},${state.userLocation.lon}&destination=${dest.lat},${dest.lon}&travelmode=driving`;
+      }
+
+      window.open(url, "_blank");
+      modal.classList.add("hidden");
+    };
+
+    appleBtn.onclick = () => {
+      let url = `https://maps.apple.com/?daddr=${dest.lat},${dest.lon}&dirflg=d`;
+
+      if (state.userLocation) {
+        url = `https://maps.apple.com/?saddr=${state.userLocation.lat},${state.userLocation.lon}&daddr=${dest.lat},${dest.lon}&dirflg=d`;
+      }
+
+      window.location.href = url;
+      modal.classList.add("hidden");
+    };
+
+    cancelBtn.onclick = () => {
+      modal.classList.add("hidden");
+    };
+
+    return;
+  }
+
+  // =========================
+  // PC → Google Maps web
+  // =========================
+  let url = `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lon}&travelmode=driving`;
+
+  if (state.userLocation) {
+    url = `https://www.google.com/maps/dir/?api=1&origin=${state.userLocation.lat},${state.userLocation.lon}&destination=${dest.lat},${dest.lon}&travelmode=driving`;
+  }
+
+  window.open(url, "_blank");
+}
   let timer = null;
   searchInput.addEventListener("input", () => {
     const q = searchInput.value.trim();
