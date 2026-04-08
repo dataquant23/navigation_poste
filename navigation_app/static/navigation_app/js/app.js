@@ -1,5 +1,6 @@
 (() => {
   const cfg = window.POSTE_NAV_APP;
+
   const state = {
     selectedPoste: null,
     userLocation: null,
@@ -13,11 +14,11 @@
   const infoPanel = document.getElementById("infoPanel");
   const statusText = document.getElementById("statusText");
   const resultCount = document.getElementById("resultCount");
-  const locateBtn = document.getElementById("locateBtn");
   const routeBtn = document.getElementById("routeBtn");
   const startBtn = document.getElementById("startBtn");
 
   const map = L.map("map").setView([5.348, -4.027], 12);
+
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors",
   }).addTo(map);
@@ -76,7 +77,6 @@
       state.userMarker.bindPopup("<strong>Votre position</strong>");
     }
 
-    // Met à jour le panneau si un poste est déjà sélectionné
     if (state.selectedPoste) {
       renderInfoPanel(state.selectedPoste);
     }
@@ -119,7 +119,7 @@
     }
 
     const userCoords = state.userLocation
-      ? `${formatCoord(state.userLocation.lat)} / ${formatCoord(state.userLocation.lon)}`
+      ? `${formatCoord(state.userLocation.lat)} , ${formatCoord(state.userLocation.lon)}`
       : "Position non disponible";
 
     infoPanel.innerHTML = `
@@ -129,7 +129,7 @@
         <div class="info-item"><b>Commune</b> ${escapeHtml(poste.commune || "-")}</div>
         <div class="info-item"><b>Quartier</b> ${escapeHtml(poste.quartier || "-")}</div>
         <div class="info-item"><b>Départ</b> ${escapeHtml(poste.depart || "-")}</div>
-        <div class="info-item"><b>Coordonnées GPS décimales</b> ${formatCoord(poste.lat)} / ${formatCoord(poste.lon)}</div>
+        <div class="info-item"><b>Coordonnées GPS décimales</b> ${formatCoord(poste.lat)} , ${formatCoord(poste.lon)}</div>
         <div class="info-item"><b>Ma position</b> ${userCoords}</div>
       </div>
     `;
@@ -208,7 +208,9 @@
     searchResults.innerHTML = "";
     resultCount.textContent = String(results.length);
 
-    if (!results.length) return;
+    if (!results.length) {
+      return;
+    }
 
     const panel = document.createElement("div");
     panel.className = "search-results-panel";
@@ -276,10 +278,12 @@
       }
 
       setStatus("Position actuelle détectée");
+      return pos;
     } catch (err) {
       console.error(err);
       setStatus("Impossible de récupérer la position");
       alert("Impossible de récupérer votre position actuelle.");
+      throw err;
     }
   }
 
@@ -363,84 +367,94 @@
     }
   }
 
-function openInMaps() {
-  if (!state.selectedPoste) {
-    alert("Choisis d'abord un poste.");
-    return;
+  function buildGoogleMapsWebUrl(dest, origin = null) {
+    let url = `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lon}&travelmode=driving`;
+
+    if (origin) {
+      url = `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lon}&destination=${dest.lat},${dest.lon}&travelmode=driving`;
+    }
+
+    return url;
   }
 
-  if (!hasValidLatLon(state.selectedPoste)) {
-    alert("Coordonnées GPS invalides.");
-    return;
+  function buildGoogleMapsIosAppUrl(dest, origin = null) {
+    let url = `comgooglemaps://?daddr=${dest.lat},${dest.lon}&directionsmode=driving`;
+
+    if (origin) {
+      url = `comgooglemaps://?saddr=${origin.lat},${origin.lon}&daddr=${dest.lat},${dest.lon}&directionsmode=driving`;
+    }
+
+    return url;
   }
 
-  const dest = state.selectedPoste;
-  const ua = navigator.userAgent || "";
+  function openInMaps() {
+    if (!state.selectedPoste) {
+      alert("Choisis d'abord un poste.");
+      return;
+    }
 
-  const isAndroid = /Android/i.test(ua);
-  const isIOS = /iPad|iPhone|iPod/i.test(ua);
+    if (!hasValidLatLon(state.selectedPoste)) {
+      alert("Coordonnées GPS du poste invalides.");
+      return;
+    }
 
-  // =========================
-  // ANDROID → direct
-  // =========================
-  if (isAndroid) {
-    let url = `google.navigation:q=${dest.lat},${dest.lon}`;
-
-    window.location.href = url;
-    return;
-  }
-
-  // =========================
-  // iPHONE → afficher choix
-  // =========================
-  if (isIOS) {
-    const modal = document.getElementById("mapChoiceModal");
-    modal.classList.remove("hidden");
-
-    const googleBtn = document.getElementById("btnGoogleMaps");
-    const appleBtn = document.getElementById("btnAppleMaps");
-    const cancelBtn = document.getElementById("btnCancel");
-
-    googleBtn.onclick = () => {
-      let url = `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lon}&travelmode=driving`;
-
-      if (state.userLocation) {
-        url = `https://www.google.com/maps/dir/?api=1&origin=${state.userLocation.lat},${state.userLocation.lon}&destination=${dest.lat},${dest.lon}&travelmode=driving`;
-      }
-
-      window.open(url, "_blank");
-      modal.classList.add("hidden");
+    const dest = {
+      lat: Number(state.selectedPoste.lat),
+      lon: Number(state.selectedPoste.lon),
     };
 
-    appleBtn.onclick = () => {
-      let url = `https://maps.apple.com/?daddr=${dest.lat},${dest.lon}&dirflg=d`;
+    const origin = state.userLocation
+      ? {
+          lat: Number(state.userLocation.lat),
+          lon: Number(state.userLocation.lon),
+        }
+      : null;
 
-      if (state.userLocation) {
-        url = `https://maps.apple.com/?saddr=${state.userLocation.lat},${state.userLocation.lon}&daddr=${dest.lat},${dest.lon}&dirflg=d`;
-      }
+    const ua = navigator.userAgent || "";
+    const isAndroid = /Android/i.test(ua);
+    const isIOS = /iPad|iPhone|iPod/i.test(ua);
 
-      window.location.href = url;
-      modal.classList.add("hidden");
-    };
+    const googleWebUrl = buildGoogleMapsWebUrl(dest, origin);
 
-    cancelBtn.onclick = () => {
-      modal.classList.add("hidden");
-    };
+    if (isAndroid) {
+      const androidAppUrl = `google.navigation:q=${dest.lat},${dest.lon}`;
 
-    return;
+      window.location.href = androidAppUrl;
+
+      setTimeout(() => {
+        window.location.href = googleWebUrl;
+      }, 1200);
+
+      return;
+    }
+
+    if (isIOS) {
+      const iosAppUrl = buildGoogleMapsIosAppUrl(dest, origin);
+      window.location.href = iosAppUrl;
+      return;
+    }
+
+    window.open(googleWebUrl, "_blank");
   }
 
-  // =========================
-  // PC → Google Maps web
-  // =========================
-  let url = `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lon}&travelmode=driving`;
-
-  if (state.userLocation) {
-    url = `https://www.google.com/maps/dir/?api=1&origin=${state.userLocation.lat},${state.userLocation.lon}&destination=${dest.lat},${dest.lon}&travelmode=driving`;
+  if (L.control && L.control.locate) {
+    L.control.locate({
+      position: "topleft",
+      flyTo: true,
+      setView: "untilPan",
+      keepCurrentZoomLevel: false,
+      initialZoomLevel: 16,
+      locateOptions: {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      },
+      strings: {
+        title: "Ma position",
+      },
+    }).addTo(map);
   }
 
-  window.open(url, "_blank");
-}
   let timer = null;
   searchInput.addEventListener("input", () => {
     const q = searchInput.value.trim();
@@ -469,9 +483,16 @@ function openInMaps() {
     }
   });
 
-  locateBtn?.addEventListener("click", locateUser);
   routeBtn?.addEventListener("click", drawRoute);
   startBtn?.addEventListener("click", openInMaps);
+
+  window.addEventListener("load", async () => {
+    try {
+      await locateUser();
+    } catch (err) {
+      console.error(err);
+    }
+  });
 
   resultCount.textContent = "0";
   setActionState();

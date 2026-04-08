@@ -4,10 +4,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>Navigation vers poste</title>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="{% static 'navigation_app/app.css' %}" />
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
+  <link rel="stylesheet" href="{% static 'navigation_app/css/app.css' %}" />
 </head>
 <body>
   <div class="shell">
@@ -25,15 +31,13 @@
         <div id="searchResults" class="search-results"></div>
       </div>
 
-      <div class="field compact">
-        <label>Départ</label>
-        <button id="locateBtn" class="btn btn-secondary" type="button">Ma position</button>
-      </div>
-
+ 
       <div class="actions">
         <button id="routeBtn" class="btn btn-primary" type="button" disabled>Tracer l’itinéraire</button>
         <button id="startBtn" class="btn btn-dark" type="button" disabled>Démarrer dans Maps</button>
       </div>
+   
+      
     </section>
 
     <section class="content">
@@ -59,29 +63,17 @@
   </div>
 
   <div style="display:none;">{% csrf_token %}</div>
-
-  <footer class="app-footer">
-    POWERED BY DCPIQ / TEAM SDRO
-  </footer>
-
-  <!-- Popup choix app iPhone -->
-  <div id="mapChoiceModal" class="map-modal hidden">
-    <div class="map-modal-content">
-      <h3>Choisir une application</h3>
-      <button id="btnGoogleMaps" class="btn btn-primary" type="button">Google Maps</button>
-      <button id="btnAppleMaps" class="btn btn-secondary" type="button">Plans (iPhone)</button>
-      <button id="btnCancelMaps" class="btn" type="button">Annuler</button>
-    </div>
-  </div>
-
+ <footer class="app-footer">
+  POWERED BY DCPIQ / TEAM SDRO
+</footer>
   <script>
     window.POSTE_NAV_APP = {
       searchUrl: "{% url 'navigation_app:api_search_postes' %}",
       detailUrl: "{% url 'navigation_app:api_poste_detail' %}"
     };
   </script>
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="{% static 'navigation_app/app.js' %}"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="  crossorigin></script>
+  <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
+  <script src="{% static 'navigation_app/js/app.js' %}"></script>
 </body>
 </html>
